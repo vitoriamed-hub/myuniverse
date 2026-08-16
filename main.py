@@ -1,33 +1,39 @@
 import random
 import math
+import csv
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 
 # ============================================================
-# CONFIGURAÇÕES DO UNIVERSO - V0.2
+# UNIVERSO DAS FORMIGAS
+# V0.2 - REPRODUÇÃO CORRIGIDA
+# ============================================================
+
+
+# ============================================================
+# 1. CONFIGURAÇÕES
 # ============================================================
 
 WORLD_SIZE = 100
 
+NUMBER_OF_COLONIES = 3
+
 INITIAL_MALES = 20
 INITIAL_FEMALES = 20
 
-# Recursos iniciais
-STARTING_LEAVES = 100
-STARTING_FRUITS = 50
+# Recursos do arbusto
+STARTING_LEAVES = 100.0
+STARTING_FRUITS = 50.0
 
-# Regeneração
 LEAF_REGENERATION = 1.0
 FRUIT_REGENERATION = 0.3
 
 # Energia
-STARTING_ENERGY = 100
-BABY_ENERGY = 50
+STARTING_ENERGY = 100.0
+BABY_ENERGY = 50.0
 
-LEAF_ENERGY = 12
-FRUIT_ENERGY = 25
+LEAF_ENERGY = 12.0
+FRUIT_ENERGY = 25.0
 
 # Biologia
 MAX_AGE = 1500
@@ -41,12 +47,12 @@ PREGNANCY_DURATION = 30
 REPRODUCTION_COOLDOWN = 40
 
 # Simulação
-SIMULATION_STEPS = 1000
+SIMULATION_DAYS = 1000
 REPORT_EVERY = 50
 
 
 # ============================================================
-# FORMIGA
+# 2. FORMIGA
 # ============================================================
 
 class Ant:
@@ -66,36 +72,49 @@ class Ant:
         self.id = Ant.next_id
         Ant.next_id += 1
 
+        # Posição
         self.x = x
         self.y = y
 
+        # Biologia
         self.sex = sex
-        self.colony = colony
-        self.role = role
-
         self.age = age
-
         self.energy = STARTING_ENERGY
 
-        # Pequenas diferenças individuais
-        self.strength = random.uniform(0.8, 1.2)
+        # Organização social
+        self.colony = colony
+        self.role = role
 
         # Reprodução
         self.pregnancy = 0
         self.reproduction_cooldown = 0
 
+        # Vida
         self.alive = True
+
+        # Pequena variação individual
+        self.strength = random.uniform(
+            0.8,
+            1.2
+        )
 
     # --------------------------------------------------------
     # MOVIMENTO
     # --------------------------------------------------------
 
-    def move_towards(self, target_x, target_y):
+    def move_towards(
+        self,
+        target_x,
+        target_y
+    ):
 
         dx = target_x - self.x
         dy = target_y - self.y
 
-        distance = math.hypot(dx, dy)
+        distance = math.hypot(
+            dx,
+            dy
+        )
 
         if distance == 0:
             return
@@ -108,32 +127,43 @@ class Ant:
             dy / distance
         ) * MOVEMENT_SPEED
 
+        # Limites do universo
         self.x = max(
             0,
-            min(WORLD_SIZE, self.x)
+            min(
+                WORLD_SIZE,
+                self.x
+            )
         )
 
         self.y = max(
             0,
-            min(WORLD_SIZE, self.y)
+            min(
+                WORLD_SIZE,
+                self.y
+            )
         )
 
+        # Movimento custa energia
         self.energy -= 0.15
 
     # --------------------------------------------------------
-    # ENVELHECIMENTO
+    # PASSAGEM DE UM DIA
     # --------------------------------------------------------
 
-    def age_one_day(self):
+    def live_one_day(self):
 
         self.age += 1
 
+        # Metabolismo
         self.energy -= 0.1
 
+        # Cooldown
         if self.reproduction_cooldown > 0:
 
             self.reproduction_cooldown -= 1
 
+        # Gestação
         if self.pregnancy > 0:
 
             self.pregnancy -= 1
@@ -147,31 +177,44 @@ class Ant:
         if not self.alive:
             return False
 
+        # Rainha não participa deste sistema
         if self.role == "queen":
             return False
 
+        # Precisa estar madura
         if self.age < MATURITY_AGE:
             return False
 
+        # Energia mínima
         if self.energy < 40:
             return False
 
+        # Precisa estar disponível
         if self.reproduction_cooldown > 0:
             return False
 
-        if self.sex == "F" and self.pregnancy > 0:
+        # Fêmea grávida não pode engravidar novamente
+        if (
+            self.sex == "F"
+            and self.pregnancy > 0
+        ):
             return False
 
         return True
 
 
 # ============================================================
-# COLÔNIA
+# 3. COLÔNIA
 # ============================================================
 
 class Colony:
 
-    def __init__(self, name, x, y):
+    def __init__(
+        self,
+        name,
+        x,
+        y
+    ):
 
         self.name = name
 
@@ -180,6 +223,7 @@ class Colony:
 
         self.ants = []
 
+        # Estatísticas
         self.births = 0
         self.deaths = 0
         self.matings = 0
@@ -202,33 +246,49 @@ class Colony:
             role="queen"
         )
 
-        self.ants.append(queen)
+        self.ants.append(
+            queen
+        )
 
         # Machos
-        for _ in range(INITIAL_MALES):
+        for _ in range(
+            INITIAL_MALES
+        ):
 
             male = Ant(
                 self.x,
                 self.y,
                 "M",
                 self,
-                age=random.randint(50, 300)
+                age=random.randint(
+                    MATURITY_AGE,
+                    300
+                )
             )
 
-            self.ants.append(male)
+            self.ants.append(
+                male
+            )
 
         # Fêmeas
-        for _ in range(INITIAL_FEMALES):
+        for _ in range(
+            INITIAL_FEMALES
+        ):
 
             female = Ant(
                 self.x,
                 self.y,
                 "F",
                 self,
-                age=random.randint(50, 300)
+                age=random.randint(
+                    MATURITY_AGE,
+                    300
+                )
             )
 
-            self.ants.append(female)
+            self.ants.append(
+                female
+            )
 
     # --------------------------------------------------------
     # FORMIGAS VIVAS
@@ -254,12 +314,16 @@ class Colony:
 
 
 # ============================================================
-# ARBUSTO
+# 4. ARBUSTO
 # ============================================================
 
 class Bush:
 
-    def __init__(self, x, y):
+    def __init__(
+        self,
+        x,
+        y
+    ):
 
         self.x = x
         self.y = y
@@ -267,21 +331,27 @@ class Bush:
         self.leaves = STARTING_LEAVES
         self.fruits = STARTING_FRUITS
 
+    # --------------------------------------------------------
+    # REGENERAÇÃO
+    # --------------------------------------------------------
+
     def regenerate(self):
 
         self.leaves = min(
             STARTING_LEAVES,
-            self.leaves + LEAF_REGENERATION
+            self.leaves
+            + LEAF_REGENERATION
         )
 
         self.fruits = min(
             STARTING_FRUITS,
-            self.fruits + FRUIT_REGENERATION
+            self.fruits
+            + FRUIT_REGENERATION
         )
 
 
 # ============================================================
-# UNIVERSO
+# 5. UNIVERSO
 # ============================================================
 
 class World:
@@ -290,13 +360,15 @@ class World:
 
         self.day = 0
 
-        self.colonies = []
-
+        # Arbusto central
         self.bush = Bush(
             WORLD_SIZE / 2,
             WORLD_SIZE / 2
         )
 
+        self.colonies = []
+
+        # Estatísticas globais
         self.total_births = 0
         self.total_deaths = 0
         self.total_matings = 0
@@ -310,12 +382,16 @@ class World:
             "C": []
         }
 
-        self.history_food = []
+        self.history_births = []
+        self.history_deaths = []
+
+        self.history_leaves = []
+        self.history_fruits = []
 
         self.create_colonies()
 
     # --------------------------------------------------------
-    # CRIA AS COLÔNIAS
+    # CRIA TRÊS COLÔNIAS
     # --------------------------------------------------------
 
     def create_colonies(self):
@@ -323,9 +399,12 @@ class World:
         center_x = WORLD_SIZE / 2
         center_y = WORLD_SIZE / 2
 
+        # Distância do centro
         radius = 35
 
-        for i in range(3):
+        for i in range(
+            NUMBER_OF_COLONIES
+        ):
 
             angle = math.radians(
                 90 + i * 120
@@ -333,12 +412,14 @@ class World:
 
             x = (
                 center_x
-                + radius * math.cos(angle)
+                + radius
+                * math.cos(angle)
             )
 
             y = (
                 center_y
-                + radius * math.sin(angle)
+                + radius
+                * math.sin(angle)
             )
 
             colony = Colony(
@@ -368,10 +449,13 @@ class World:
         return ants
 
     # --------------------------------------------------------
-    # DISTÂNCIA ATÉ O ARBUSTO
+    # DISTÂNCIA AO ARBUSTO
     # --------------------------------------------------------
 
-    def distance_to_bush(self, ant):
+    def distance_to_bush(
+        self,
+        ant
+    ):
 
         return math.hypot(
             ant.x - self.bush.x,
@@ -382,25 +466,39 @@ class World:
     # ALIMENTAÇÃO
     # --------------------------------------------------------
 
-    def feed_ant(self, ant):
+    def feed_ant(
+        self,
+        ant
+    ):
 
-        if (
-            self.distance_to_bush(ant)
-            < 3
-        ):
+        distance = (
+            self.distance_to_bush(
+                ant
+            )
+        )
 
+        # Área de alimentação
+        if distance < 3:
+
+            # Fruto
             if self.bush.fruits >= 1:
 
                 self.bush.fruits -= 1
 
-                ant.energy += FRUIT_ENERGY
+                ant.energy += (
+                    FRUIT_ENERGY
+                )
 
+            # Folha
             elif self.bush.leaves >= 1:
 
                 self.bush.leaves -= 1
 
-                ant.energy += LEAF_ENERGY
+                ant.energy += (
+                    LEAF_ENERGY
+                )
 
+            # Limite
             ant.energy = min(
                 ant.energy,
                 150
@@ -414,7 +512,8 @@ class World:
 
         for ant in self.all_ants():
 
-            # Pouca energia → procurar comida
+            # Se estiver com pouca energia,
+            # procura alimento.
             if ant.energy < 70:
 
                 ant.move_towards(
@@ -445,7 +544,9 @@ class World:
                     target_y
                 )
 
-            self.feed_ant(ant)
+            self.feed_ant(
+                ant
+            )
 
     # --------------------------------------------------------
     # REPRODUÇÃO
@@ -469,18 +570,21 @@ class World:
                 for ant in colony.living_ants()
                 if (
                     ant.sex == "F"
-                    and ant.role != "queen"
+                    and ant.role == "worker"
                     and ant.can_reproduce()
                 )
             ]
 
-            random.shuffle(males)
+            random.shuffle(
+                males
+            )
 
             for male in males:
 
                 if not females:
                     break
 
+                # Procura a fêmea mais próxima
                 female = min(
                     females,
                     key=lambda f:
@@ -495,13 +599,19 @@ class World:
                     male.y - female.y
                 )
 
+                # Precisam estar próximos
                 if distance < 2:
 
-                    # Começa a gestação
+                    # Inicia gestação
                     female.pregnancy = (
                         PREGNANCY_DURATION
                     )
 
+                    # Marca que existe uma
+                    # gestação ativa
+                    female.was_pregnant = True
+
+                    # Cooldowns
                     male.reproduction_cooldown = (
                         REPRODUCTION_COOLDOWN
                     )
@@ -510,18 +620,21 @@ class World:
                         REPRODUCTION_COOLDOWN
                     )
 
+                    # Custo energético
                     male.energy -= 5
                     female.energy -= 10
 
                     colony.matings += 1
                     self.total_matings += 1
 
+                    # Essa fêmea não pode ser
+                    # escolhida novamente neste dia
                     females.remove(
                         female
                     )
 
     # --------------------------------------------------------
-    # GESTAÇÃO
+    # GESTAÇÃO E NASCIMENTO
     # --------------------------------------------------------
 
     def process_pregnancies(self):
@@ -533,33 +646,38 @@ class World:
                 if mother.sex != "F":
                     continue
 
-                if mother.role == "queen":
+                if mother.role != "worker":
                     continue
 
-                # A gestação acabou
-                if (
-                    mother.pregnancy == 0
-                    and getattr(
-                        mother,
-                        "was_pregnant",
-                        False
-                    )
+                # Se ainda está grávida,
+                # não fazemos nada.
+                if mother.pregnancy > 0:
+                    continue
+
+                # Se a gestação terminou,
+                # nasce exatamente um filhote.
+                if getattr(
+                    mother,
+                    "was_pregnant",
+                    False
                 ):
 
-                    # Nasce exatamente UM filhote
-                    sex = random.choice(
+                    baby_sex = random.choice(
                         ["M", "F"]
                     )
 
                     baby = Ant(
                         mother.x,
                         mother.y,
-                        sex,
+                        baby_sex,
                         colony,
-                        age=0
+                        age=0,
+                        role="worker"
                     )
 
-                    baby.energy = BABY_ENERGY
+                    baby.energy = (
+                        BABY_ENERGY
+                    )
 
                     colony.ants.append(
                         baby
@@ -569,14 +687,11 @@ class World:
 
                     self.total_births += 1
 
+                    # A gestação foi consumida
                     mother.was_pregnant = False
 
-                elif mother.pregnancy > 0:
-
-                    mother.was_pregnant = True
-
     # --------------------------------------------------------
-    # MORTE
+    # MORTES
     # --------------------------------------------------------
 
     def process_deaths(self):
@@ -585,8 +700,12 @@ class World:
 
             for ant in colony.living_ants():
 
+                # Ninguém morre se estiver
+                # simplesmente grávida.
                 if ant.energy <= 0:
 
+                    # A rainha também pode morrer
+                    # nesta versão.
                     ant.alive = False
 
                     colony.deaths += 1
@@ -619,13 +738,20 @@ class World:
                 colony.population()
             )
 
-        total_food = (
-            self.bush.leaves
-            + self.bush.fruits
+        self.history_births.append(
+            self.total_births
         )
 
-        self.history_food.append(
-            total_food
+        self.history_deaths.append(
+            self.total_deaths
+        )
+
+        self.history_leaves.append(
+            self.bush.leaves
+        )
+
+        self.history_fruits.append(
+            self.bush.fruits
         )
 
     # --------------------------------------------------------
@@ -636,27 +762,27 @@ class World:
 
         self.day += 1
 
-        # 1. Envelhecimento
+        # 1. Todos envelhecem
         for ant in self.all_ants():
 
-            ant.age_one_day()
+            ant.live_one_day()
 
-        # 2. Movimento
+        # 2. Movimento e alimentação
         self.move_ants()
 
-        # 3. Reprodução
+        # 3. Acasalamento
         self.reproduce()
 
-        # 4. Gestação
+        # 4. Gestações e nascimentos
         self.process_pregnancies()
 
-        # 5. Regeneração
+        # 5. Arbusto cresce novamente
         self.bush.regenerate()
 
         # 6. Mortes
         self.process_deaths()
 
-        # 7. Histórico
+        # 7. Salvar estado do universo
         self.record_history()
 
     # --------------------------------------------------------
@@ -666,15 +792,20 @@ class World:
     def report(self):
 
         print()
-        print("=" * 60)
+        print("=" * 65)
         print(
             f"DIA {self.day}"
         )
-        print("=" * 60)
+        print("=" * 65)
 
         for colony in self.colonies:
 
             ants = colony.living_ants()
+
+            queens = sum(
+                ant.role == "queen"
+                for ant in ants
+            )
 
             males = sum(
                 ant.sex == "M"
@@ -682,13 +813,10 @@ class World:
             )
 
             females = sum(
-                ant.sex == "F"
-                for ant in ants
-                if ant.role != "queen"
-            )
-
-            queen = sum(
-                ant.role == "queen"
+                (
+                    ant.sex == "F"
+                    and ant.role == "worker"
+                )
                 for ant in ants
             )
 
@@ -709,10 +837,10 @@ class World:
             print(
                 f"Colônia {colony.name}: "
                 f"{len(ants)} formigas | "
-                f"👑 {queen} rainha | "
-                f"♂ {males} | "
-                f"♀ {females} | "
-                f"energia média: "
+                f"Rainhas: {queens} | "
+                f"Machos: {males} | "
+                f"Fêmeas: {females} | "
+                f"Energia média: "
                 f"{average_energy:.1f}"
             )
 
@@ -725,7 +853,7 @@ class World:
         )
 
         print(
-            f"Eventos → "
+            f"Total → "
             f"nascimentos: "
             f"{self.total_births} | "
             f"mortes: "
@@ -736,10 +864,12 @@ class World:
 
 
 # ============================================================
-# GRÁFICO FINAL
+# GRÁFICO DE POPULAÇÃO
 # ============================================================
 
-def create_final_graph(world):
+def create_population_graph(
+    world
+):
 
     plt.figure(
         figsize=(10, 6)
@@ -752,7 +882,10 @@ def create_final_graph(world):
             world.history_population[
                 colony.name
             ],
-            label=f"Colônia {colony.name}"
+            label=(
+                f"Colônia "
+                f"{colony.name}"
+            )
         )
 
     plt.xlabel(
@@ -760,7 +893,7 @@ def create_final_graph(world):
     )
 
     plt.ylabel(
-        "População"
+        "Número de formigas"
     )
 
     plt.title(
@@ -769,7 +902,12 @@ def create_final_graph(world):
 
     plt.legend()
 
-    plt.grid()
+    plt.grid(
+        True,
+        alpha=0.3
+    )
+
+    plt.tight_layout()
 
     plt.savefig(
         "populacao.png",
@@ -780,15 +918,128 @@ def create_final_graph(world):
 
 
 # ============================================================
+# GRÁFICO DE RECURSOS
+# ============================================================
+
+def create_resource_graph(
+    world
+):
+
+    plt.figure(
+        figsize=(10, 6)
+    )
+
+    plt.plot(
+        world.history_days,
+        world.history_leaves,
+        label="Folhas"
+    )
+
+    plt.plot(
+        world.history_days,
+        world.history_fruits,
+        label="Frutos"
+    )
+
+    plt.xlabel(
+        "Dias"
+    )
+
+    plt.ylabel(
+        "Quantidade"
+    )
+
+    plt.title(
+        "Recursos do arbusto"
+    )
+
+    plt.legend()
+
+    plt.grid(
+        True,
+        alpha=0.3
+    )
+
+    plt.tight_layout()
+
+    plt.savefig(
+        "recursos.png",
+        dpi=150
+    )
+
+    plt.close()
+
+
+# ============================================================
+# SALVA OS DADOS
+# ============================================================
+
+def save_data(
+    world
+):
+
+    with open(
+        "historico.csv",
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.writer(
+            file
+        )
+
+        writer.writerow([
+            "dia",
+            "colonia_A",
+            "colonia_B",
+            "colonia_C",
+            "nascimentos",
+            "mortes",
+            "folhas",
+            "frutos"
+        ])
+
+        for i in range(
+            len(world.history_days)
+        ):
+
+            writer.writerow([
+                world.history_days[i],
+                world.history_population["A"][i],
+                world.history_population["B"][i],
+                world.history_population["C"][i],
+                world.history_births[i],
+                world.history_deaths[i],
+                world.history_leaves[i],
+                world.history_fruits[i]
+            ])
+
+
+# ============================================================
 # EXECUÇÃO
 # ============================================================
 
 world = World()
 
 print()
-print("=" * 60)
+print("=" * 65)
 print("UNIVERSO DAS FORMIGAS - V0.2")
-print("=" * 60)
+print("=" * 65)
+
+print(
+    "Reprodução corrigida."
+)
+
+print(
+    "Gestação: "
+    f"{PREGNANCY_DURATION} dias."
+)
+
+print(
+    "Cada gestação gera "
+    "exatamente 1 filhote."
+)
 
 print(
     f"População inicial: "
@@ -797,13 +1048,18 @@ print(
 
 print(
     f"Simulação: "
-    f"{SIMULATION_STEPS} dias"
+    f"{SIMULATION_DAYS} dias."
 )
 
 print()
 
-for day in range(
-    SIMULATION_STEPS
+
+# ============================================================
+# SIMULAÇÃO
+# ============================================================
+
+for _ in range(
+    SIMULATION_DAYS
 ):
 
     world.step()
@@ -821,22 +1077,46 @@ for day in range(
 # RESULTADOS
 # ============================================================
 
-create_final_graph(
+create_population_graph(
     world
 )
 
+create_resource_graph(
+    world
+)
+
+save_data(
+    world
+)
+
+
+# ============================================================
+# RELATÓRIO FINAL
+# ============================================================
+
 print()
-print("=" * 60)
+print("=" * 65)
 print("SIMULAÇÃO FINALIZADA")
-print("=" * 60)
+print("=" * 65)
 
 world.report()
 
 print()
+print("Arquivos criados:")
+
 print(
-    "Arquivo criado:"
+    "  populacao.png"
 )
 
 print(
-    "populacao.png"
+    "  recursos.png"
+)
+
+print(
+    "  historico.csv"
+)
+
+print()
+print(
+    "V0.2 concluída."
 )
